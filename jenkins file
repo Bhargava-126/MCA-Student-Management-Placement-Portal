@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'maven'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Bhargava-126/MCA-Student-Management-Placement-Portal.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Artifact') {
+            steps {
+                archiveArtifacts artifacts: 'target/*.war', fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'tomcat-credentials',
+                        usernameVariable: 'TOMCAT_USER',
+                        passwordVariable: 'TOMCAT_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        curl -u "$TOMCAT_USER:$TOMCAT_PASSWORD" \
+                        --upload-file target/mca-student-portal.war \
+                        "http://3.108.64.178:8080/manager/text/deploy?path=/mca-student-portal&update=true"
+                    '''
+                }
+            }
+        }
+    }
+}
